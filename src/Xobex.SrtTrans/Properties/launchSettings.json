@@ -1,7 +1,8 @@
 {
   "profiles": {
     "Xobex.SrtTrans": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "--quiet"
     }
   }
 }
