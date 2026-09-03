@@ -5,7 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>srt-translate</AssemblyName>
+    <AssemblyName>SrtTranslator</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
