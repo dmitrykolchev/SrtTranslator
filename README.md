@@ -1,4 +1,10 @@
-# Xobex.SrtTrans
+```
+  ____  ____ _____       _____                    _       _             
+ / ___||  _ \_   _|     |_   _| __ __ _ _ __  ___| | __ _| |_ ___  _ __ 
+ \___ \| |_) || |  _____  | || '__/ _` | '_ \/ __| |/ _` | __/ _ \| '__|
+  ___) |  _ < | | |_____| | || | | (_| | | | \__ \ | (_| | || (_) | |   
+ |____/|_| \_\|_|         |_||_|  \__,_|_| |_|___/_|\__,_|\__\___/|_|   
+```
 
 A .NET console tool that translates `.srt` subtitle files using a local
 [llama.cpp](https://github.com/ggerganov/llama.cpp) server.
