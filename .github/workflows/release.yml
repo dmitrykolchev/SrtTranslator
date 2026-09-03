@@ -1,0 +1,57 @@
+name: Создание релиза .NET
+
+on:
+  push:
+    tags:
+      - 'v*' # Срабатывает при создании тегов v1.0.0, v2.1.3 и т.д.
+
+permissions:
+  contents: write # Важно: дает права на создание релизов и загрузку файлов
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        include:
+          - rid: win-x64
+            archive_name: app-windows-x64.zip
+          - rid: linux-x64
+            archive_name: app-linux-x64.tar.gz
+
+    steps:
+    - name: Source Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x' # Укажите вашу версию SDK (например, 8.0.x или 9.0.x)
+
+    - name: Application publishing
+      run: |
+        dotnet publish -c Release \
+          -r ${{ matrix.rid }} \
+          --self-contained true \
+          /p:PublishSingleFile=true \
+          /p:PublishTrimmed=false \
+          -o ./publish-${{ matrix.rid }}
+
+    - name: Zip (Windows)
+      if: matrix.rid == 'win-x64'
+      run: |
+        cd ./publish-${{ matrix.rid }}
+        zip -r ../${{ matrix.archive_name }} .
+
+    - name: Tar (Linux)
+      if: matrix.rid == 'linux-x64'
+      run: |
+        cd ./publish-${{ matrix.rid }}
+        tar -czf ../${{ matrix.archive_name }} .
+
+    - name: Release publishing to GitHub
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ matrix.archive_name }}
+        generate_release_notes: true # Автоматически создаст список изменений на основе коммитов
