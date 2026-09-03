@@ -12,16 +12,6 @@ internal class Program
 
     private static async Task Main(string[] args)
     {
-        Console.ForegroundColor = ConsoleColor.Blue;
-        Console.WriteLine(@"
-  ____  ____ _____       _____                    _       _             
- / ___||  _ \_   _|     |_   _| __ __ _ _ __  ___| | __ _| |_ ___  _ __ 
- \___ \| |_) || |  _____  | || '__/ _` | '_ \/ __| |/ _` | __/ _ \| '__|
-  ___) |  _ < | | |_____| | || | | (_| | | | \__ \ | (_| | || (_) | |   
- |____/|_| \_\|_|         |_||_|  \__,_|_| |_|___/_|\__,_|\__\___/|_|  
-");
-        Console.ResetColor();
-
         // Input subtitle file (.srt)
         Option<string> inputFileOption = new("--input", ["-i"])
         {
@@ -40,54 +30,61 @@ internal class Program
         Option<string> langOption = new("--lang", ["-l"])
         {
             Description = "Translation language.",
-            DefaultValueFactory =  (arg)=> "russian",
-            Required = false
+            DefaultValueFactory =  (arg)=> "russian"
         };
 
         // Port of the local llama.cpp server
         Option<int> portOption = new("--port", ["-p"])
         {
-            Description = "localhost port of llama.cpp server",
-            DefaultValueFactory = (arg) => 8080,
-            Required = false
+            Description = "port where llama.cpp server listen to",
+            DefaultValueFactory = (arg) => 8080
+        };
+
+        Option<string> hostOption = new("--host", ["-h"])
+        {
+            Description = "llama.cpp server host name or IP address",
+            DefaultValueFactory = (arg) => "localhost"
+        };
+
+        Option<bool> tlsOption = new("--tls", ["-s"])
+        {
+            Description = "Use HTTPS protocol",
+            DefaultValueFactory = (arg) => false
         };
 
         // Timeout for a single llama.cpp server request
         Option<int> timeoutOption = new("--timeout", ["-t"])
         {
             Description = "llama.cpp server request timeout in minutes",
-            DefaultValueFactory = (arg) => 15,
-            Required = false
+            DefaultValueFactory = (arg) => 15
         };
 
         // Number of subtitles translated in each batch
         Option<int> batchSizeOption = new("--batch-size", ["-b"])
         {
             Description = "Number of subtitles to translate in each batch",
-            DefaultValueFactory = (arg) => 50,
-            Required = false
+            DefaultValueFactory = (arg) => 50
         };
 
         Option<bool> quietOption = new("--quiet", ["-q"])
         {
-            Description = "Suppress console output. This option overrides the verbose option (--verbose).",
-            DefaultValueFactory = (arg) => false,
-            Required = false
+            Description = "Suppress console information messages output.",
+            DefaultValueFactory = (arg) => false
         };
 
         Option<bool> verboseOption = new("--verbose", ["-v"])
         {
             Description = "Display verbose output",
-            DefaultValueFactory = (arg) => false,
-            Required = false
+            DefaultValueFactory = (arg) => false
         };
 
-
-        RootCommand rootCommand = new("SRT Translator");
+        RootCommand rootCommand = new("Subtitle Translator Program");
 
         rootCommand.Options.Add(inputFileOption);
         rootCommand.Options.Add(outputFileOption);
         rootCommand.Options.Add(langOption);
+        rootCommand.Options.Add(tlsOption);
+        rootCommand.Options.Add(hostOption);
         rootCommand.Options.Add(portOption);
         rootCommand.Options.Add(timeoutOption);
         rootCommand.Options.Add(batchSizeOption);
@@ -97,6 +94,8 @@ internal class Program
         rootCommand.SetAction(async (ParseResult parseResult, CancellationToken cancellation) =>
         {
             await TranslateFile(
+                parseResult.GetValue(tlsOption),
+                parseResult.GetValue(hostOption)!,
                 parseResult.GetValue(portOption),
                 parseResult.GetValue(inputFileOption)!,
                 parseResult.GetValue(outputFileOption)!,
@@ -108,21 +107,52 @@ internal class Program
                 cancellation);
         });
         var parseResult = rootCommand.Parse(args);
+        if(!parseResult.GetValue(quietOption))
+        {
+            PrintSplash();
+        }
         await parseResult.InvokeAsync();
+    }
+
+    private static void PrintSplash()
+    {
+        Console.ForegroundColor = ConsoleColor.Blue;
+        if (Random.Shared.Next(100) % 2 == 0)
+        {
+            Console.WriteLine(@"
+  ____  ____ _____       _____                    _       _             
+ / ___||  _ \_   _|     |_   _| __ __ _ _ __  ___| | __ _| |_ ___  _ __ 
+ \___ \| |_) || |  _____  | || '__/ _` | '_ \/ __| |/ _` | __/ _ \| '__|
+  ___) |  _ < | | |_____| | || | | (_| | | | \__ \ | (_| | || (_) | |   
+ |____/|_| \_\|_|         |_||_|  \__,_|_| |_|___/_|\__,_|\__\___/|_|  
+");
+        }
+        else
+        {
+            Console.WriteLine(@"
+   _____ ____  ______  ______                      __      __            
+  / ___// __ \/_  __/ /_  __/________ _____  _____/ /___ _/ /_____  _____
+  \__ \/ /_/ / / /_____/ / / ___/ __ `/ __ \/ ___/ / __ `/ __/ __ \/ ___/
+ ___/ / _, _/ / /_____/ / / /  / /_/ / / / (__  ) / /_/ / /_/ /_/ / /    
+/____/_/ |_| /_/     /_/ /_/   \__,_/_/ /_/____/_/\__,_/\__/\____/_/     
+");
+        }
+        Console.ResetColor();
     }
 
     /// <summary>
     /// Reads the SRT file and translates it in batches against the local llama.cpp server.
     /// </summary>
-    public static async Task TranslateFile(int port, string input, string output, string language, int timeout, int batchSize, bool quiet, bool verbose, CancellationToken cancellation)
+    public static async Task TranslateFile(bool useTls, string host, int port, string input, string output, string language, int timeout, int batchSize, bool quiet, bool verbose, CancellationToken cancellation)
     {
+        string url = $"{(useTls ? "https" : "http")}://{host}:{port}";
         if (!quiet)
         {
             Console.Error.WriteLine($"Translating {input} to {output} in {language}\n" +
-                $"using localhost:{port} with timeout {timeout} minutes and batch size {batchSize}...");
+                $"using {url} with timeout {timeout} minutes and batch size {batchSize}...");
         }
 
-        var translator = new LlamaDynamicTranslator($"http://localhost:{port}/v1/chat/completions", timeout);
+        var translator = new LlamaDynamicTranslator($"{url}/v1/chat/completions", timeout);
         var items = await SrtConverter.ReadSrtAsync(input);
         var translated = new List<SubtitleItem>();
 
@@ -139,7 +169,13 @@ internal class Program
                 }
                 var slice = items.Slice(offset, count);
                 var newItems = await translator.TranslateSubtitlesAsync(slice, language, cancellation);
-
+                if(verbose)
+                {
+                    foreach(var item in newItems)
+                    {
+                        Console.WriteLine($"{item.Index}\n{item.StartTime} --> {item.EndTime}\n{item.Text}\n");
+                    }
+                }
                 var startIndex = translated.Count;
                 translated.AddRange(newItems);
             }
