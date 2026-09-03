@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Xobex.SrtTrans": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 8087 --input D:\\users\\Public\\Videos\\lanterns_e03_en_sdh.srt --out D:\\users\\Public\\Videos\\lanterns_e03_ru_sdh.srt"
+    }
+  }
+}
