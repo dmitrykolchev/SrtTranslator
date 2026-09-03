@@ -126,3 +126,10 @@ dotnet run -- -i subtitles_en.srt -o subtitles_ru.json -l russian --batch-size 1
 | `SrtConverter.cs` | SRT parsing, validation, and writing. |
 | `LlamaDynamicTranslator.cs` | llama.cpp API call, retry, and response parsing. |
 | `SubtitleItem.cs` | Subtitle data model. |
+
+## Make Release
+
+```bash
+git tag v1.0.x
+git push origin v1.0.x
+```
