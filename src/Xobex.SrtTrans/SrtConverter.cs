@@ -67,19 +67,19 @@ public partial class SrtConverter
     /// <summary>
     /// Verifies that the translated subtitle count and indices match the expected structure.
     /// </summary>
-    public static bool Validate(List<SubtitleItem> original, List<SubtitleItem> translated)
+    public static bool Validate(List<SubtitleItem> original, List<SubtitleItem> translated, bool quiet)
     {
         var valid = true;
         if (original.Count != translated.Count)
         {
-            Console.WriteLine($"Warning: original items count {original.Count} does not match translated items count {translated.Count}");
+            Console.Error.WriteLine($"Warning: original items count {original.Count} does not match translated items count {translated.Count}");
             valid = false;
         }
         for (var index = 0; index < translated.Count; ++index)
         {
             if (translated[index].Index != index + 1)
             {
-                Console.WriteLine($"Warning: translated item index {translated[index].Index} does not match expected index {index + 1}");
+                Console.Error.WriteLine($"Warning: translated item index {translated[index].Index} does not match expected index {index + 1}");
                 valid = false;
             }
         }

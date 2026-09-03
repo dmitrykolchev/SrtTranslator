@@ -12,6 +12,16 @@ internal class Program
 
     private static async Task Main(string[] args)
     {
+        Console.ForegroundColor = ConsoleColor.Blue;
+        Console.WriteLine(@"
+  ____  ____ _____       _____                    _       _             
+ / ___||  _ \_   _|     |_   _| __ __ _ _ __  ___| | __ _| |_ ___  _ __ 
+ \___ \| |_) || |  _____  | || '__/ _` | '_ \/ __| |/ _` | __/ _ \| '__|
+  ___) |  _ < | | |_____| | || | | (_| | | | \__ \ | (_| | || (_) | |   
+ |____/|_| \_\|_|         |_||_|  \__,_|_| |_|___/_|\__,_|\__\___/|_|  
+");
+        Console.ResetColor();
+
         // Input subtitle file (.srt)
         Option<string> inputFileOption = new("--input", ["-i"])
         {
@@ -58,6 +68,21 @@ internal class Program
             Required = false
         };
 
+        Option<bool> quietOption = new("--quiet", ["-q"])
+        {
+            Description = "Suppress console output. This option overrides the verbose option (--verbose).",
+            DefaultValueFactory = (arg) => false,
+            Required = false
+        };
+
+        Option<bool> verboseOption = new("--verbose", ["-v"])
+        {
+            Description = "Display verbose output",
+            DefaultValueFactory = (arg) => false,
+            Required = false
+        };
+
+
         RootCommand rootCommand = new("SRT Translator");
 
         rootCommand.Options.Add(inputFileOption);
@@ -66,6 +91,8 @@ internal class Program
         rootCommand.Options.Add(portOption);
         rootCommand.Options.Add(timeoutOption);
         rootCommand.Options.Add(batchSizeOption);
+        rootCommand.Options.Add(quietOption);
+        rootCommand.Options.Add(verboseOption);
 
         rootCommand.SetAction(async (ParseResult parseResult, CancellationToken cancellation) =>
         {
@@ -76,6 +103,8 @@ internal class Program
                 parseResult.GetValue(langOption)!,
                 parseResult.GetValue(timeoutOption),
                 parseResult.GetValue(batchSizeOption),
+                parseResult.GetValue(quietOption),
+                parseResult.GetValue(verboseOption),
                 cancellation);
         });
         var parseResult = rootCommand.Parse(args);
@@ -85,10 +114,13 @@ internal class Program
     /// <summary>
     /// Reads the SRT file and translates it in batches against the local llama.cpp server.
     /// </summary>
-    public static async Task TranslateFile(int port, string input, string output, string language, int timeout, int batchSize, CancellationToken cancellation)
+    public static async Task TranslateFile(int port, string input, string output, string language, int timeout, int batchSize, bool quiet, bool verbose, CancellationToken cancellation)
     {
-        Console.Error.WriteLine($"Translating {input} to {output} in {language}\n" +
-            $"using localhost:{port} with timeout {timeout} minutes and batch size {batchSize}...");
+        if (!quiet)
+        {
+            Console.Error.WriteLine($"Translating {input} to {output} in {language}\n" +
+                $"using localhost:{port} with timeout {timeout} minutes and batch size {batchSize}...");
+        }
 
         var translator = new LlamaDynamicTranslator($"http://localhost:{port}/v1/chat/completions", timeout);
         var items = await SrtConverter.ReadSrtAsync(input);
@@ -101,7 +133,10 @@ internal class Program
             var count = Math.Min(batchSize, items.Count - offset);
             if (count > 0)
             {
-                Console.WriteLine($"Translating batch {i + 1} of {Math.Ceiling((double)items.Count / batchSize)}...");
+                if (!quiet)
+                {
+                    Console.WriteLine($"Translating batch {i + 1} of {Math.Ceiling((double)items.Count / batchSize)}...");
+                }
                 var slice = items.Slice(offset, count);
                 var newItems = await translator.TranslateSubtitlesAsync(slice, language, cancellation);
 
@@ -113,7 +148,10 @@ internal class Program
                 break;
             }
         }
-        SrtConverter.Validate(items, translated);
+        if (!SrtConverter.Validate(items, translated, quiet))
+        {
+            Console.Error.WriteLine("Validation failed.");
+        }
         await SrtConverter.WriteSrtAsync(translated, output);
     }
 }
