@@ -61,7 +61,6 @@ internal class Program
                         Console.WriteLine($"{item.Index}\n{item.StartTime} --> {item.EndTime}\n{item.Text}\n");
                     }
                 }
-                var startIndex = translated.Count;
                 translated.AddRange(newItems);
             }
             else
@@ -69,7 +68,7 @@ internal class Program
                 break;
             }
         }
-        if (!SrtConverter.Validate(items, translated, quiet))
+        if (!SrtConverter.Validate(items, translated))
         {
             Console.Error.WriteLine("Validation failed.");
         }

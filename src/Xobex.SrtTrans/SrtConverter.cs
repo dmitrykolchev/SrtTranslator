@@ -67,7 +67,7 @@ public partial class SrtConverter
     /// <summary>
     /// Verifies that the translated subtitle count and indices match the expected structure.
     /// </summary>
-    public static bool Validate(List<SubtitleItem> original, List<SubtitleItem> translated, bool quiet)
+    public static bool Validate(List<SubtitleItem> original, List<SubtitleItem> translated)
     {
         var valid = true;
         if (original.Count != translated.Count)
