@@ -9,6 +9,8 @@ namespace Xobex.SrtTrans;
 
 internal class Program
 {
+    private const string QuietOptionName = "--quiet";
+    private static ParseResult _parseResult = null!;
     /// <summary>
     /// Application entry point
     /// </summary>
@@ -16,26 +18,23 @@ internal class Program
     /// <returns></returns>
     private static async Task Main(string[] args)
     {
-        RootCommand rootCommand = AddCommandlineOptions();
-        var parseResult = rootCommand.Parse(args);
-        if (!parseResult.GetValue<bool>("--quiet"))
-        {
-            PrintSplash();
-        }
-        await parseResult.InvokeAsync();
+        var rootCommand = AddCommandlineOptions();
+        _parseResult = rootCommand.Parse(args);
+        PrintSplash();
+        await _parseResult.InvokeAsync();
     }
+
+    private static bool IsQuiet => _parseResult.GetValue<bool>(QuietOptionName);
 
     /// <summary>
     /// Reads the SRT file and translates it in batches against the local llama.cpp server.
     /// </summary>
     private static async Task TranslateFile(bool useTls, string host, int port, string input, string output, string language, int timeout, int batchSize, bool quiet, bool verbose, CancellationToken cancellation)
     {
-        string url = $"{(useTls ? "https" : "http")}://{host}:{port}";
-        if (!quiet)
-        {
-            Console.Error.WriteLine($"Translating {input} to {output} in {language}\n" +
-                $"using {url} with timeout {timeout} minutes and batch size {batchSize}...");
-        }
+        var url = $"{(useTls ? "https" : "http")}://{host}:{port}";
+
+        WriteLine($"Translating {input} to {output} in {language}\n" +
+            $"using {url} with timeout {timeout} minutes and batch size {batchSize}...");
 
         var translator = new LlamaDynamicTranslator($"{url}/v1/chat/completions", timeout);
         var items = await SrtConverter.ReadSrtAsync(input);
@@ -48,10 +47,7 @@ internal class Program
             var count = Math.Min(batchSize, items.Count - offset);
             if (count > 0)
             {
-                if (!quiet)
-                {
-                    Console.WriteLine($"Translating batch {i + 1} of {Math.Ceiling((double)items.Count / batchSize)}...");
-                }
+                WriteLine($"Translating batch {i + 1} of {Math.Ceiling((double)items.Count / batchSize)}...");
                 var slice = items.Slice(offset, count);
                 var newItems = await translator.TranslateSubtitlesAsync(slice, language, cancellation);
                 if (verbose)
@@ -73,6 +69,14 @@ internal class Program
             Console.Error.WriteLine("Validation failed.");
         }
         await SrtConverter.WriteSrtAsync(translated, output);
+    }
+
+    private static void WriteLine(string text)
+    {
+        if (!IsQuiet)
+        {
+            Console.WriteLine(text);
+        }
     }
 
     private static RootCommand AddCommandlineOptions()
@@ -131,7 +135,7 @@ internal class Program
             DefaultValueFactory = (arg) => 50
         };
 
-        Option<bool> quietOption = new("--quiet", ["-q"])
+        Option<bool> quietOption = new(QuietOptionName, ["-q"])
         {
             Description = "Suppress console information messages output.",
             DefaultValueFactory = (arg) => false
@@ -179,7 +183,7 @@ internal class Program
         Console.ForegroundColor = ConsoleColor.Blue;
         if (Random.Shared.Next(100) % 2 == 0)
         {
-            Console.WriteLine(@"
+            WriteLine(@"
   ____  ____ _____       _____                    _       _             
  / ___||  _ \_   _|     |_   _| __ __ _ _ __  ___| | __ _| |_ ___  _ __ 
  \___ \| |_) || |  _____  | || '__/ _` | '_ \/ __| |/ _` | __/ _ \| '__|
@@ -189,7 +193,7 @@ internal class Program
         }
         else
         {
-            Console.WriteLine(@"
+            WriteLine(@"
    _____ ____  ______  ______                      __      __            
   / ___// __ \/_  __/ /_  __/________ _____  _____/ /___ _/ /_____  _____
   \__ \/ /_/ / / /_____/ / / ___/ __ `/ __ \/ ___/ / __ `/ __/ __ \/ ___/
