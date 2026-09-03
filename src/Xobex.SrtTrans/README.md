@@ -58,6 +58,13 @@ dotnet run -- -i subtitles_en.srt -o subtitles_ru.srt -l russian --port 8087
 
 ## Usage
 
+You can download prebuilt binaries of this tool from the [Releases page](https://github.com/dmitrykolchev/SrtTranslator/releases).
+Download the latest `srt-translator-[platform-arch].zip` for your platform and extract it to a folder of your choice. The tool is a single executable, so you can run it from any terminal.
+
+```bash
+./srt-translator --input input.srt --output output.srt --lang russian
+```
+
 Build the tool:
 
 ```bash

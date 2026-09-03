@@ -1,4 +1,4 @@
-# SrtTranslator
+# Xobex.SrtTrans
 
 A .NET console tool that translates `.srt` subtitle files using a local
 [llama.cpp](https://github.com/ggerganov/llama.cpp) server.
@@ -57,6 +57,13 @@ dotnet run -- -i subtitles_en.srt -o subtitles_ru.srt -l russian --port 8087
 | `--reasoning off` | Disable reasoning output.
 
 ## Usage
+
+You can download prebuilt binaries of this tool from the [Releases page](https://github.com/dmitrykolchev/SrtTranslator/releases).
+Download the latest `srt-translator-[platform-arch].zip` for your platform and extract it to a folder of your choice. The tool is a single executable, so you can run it from any terminal.
+
+```bash
+./srt-translator --input input.srt --output output.srt --lang russian
+```
 
 Build the tool:
 
@@ -126,3 +133,10 @@ dotnet run -- -i subtitles_en.srt -o subtitles_ru.json -l russian --batch-size 1
 | `SrtConverter.cs` | SRT parsing, validation, and writing. |
 | `LlamaDynamicTranslator.cs` | llama.cpp API call, retry, and response parsing. |
 | `SubtitleItem.cs` | Subtitle data model. |
+
+## Make Release
+
+```bash
+git tag v1.0.x
+git push origin v1.0.x
+```
